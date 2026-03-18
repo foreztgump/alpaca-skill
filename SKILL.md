@@ -95,7 +95,7 @@ User wants to trade or check markets?
 │   ├── Most active stocks → alpaca_screener.sh most-active [--by volume] [--top 10]
 │   └── Top movers (gainers/losers) → alpaca_screener.sh movers [--top 10]
 ├── Corporate Actions
-│   └── Dividends/splits/mergers → alpaca_corporate_actions.sh list [--symbols AAPL] [--types dividend,split] [--date-from <DATE>]
+│   └── Dividends/splits/mergers → alpaca_corporate_actions.sh list [--symbols AAPL] [--types dividend,split] [--start <DATE>] [--end <DATE>]
 └── Watchlists
     ├── List watchlists → alpaca_watchlists.sh list
     ├── Get watchlist → alpaca_watchlists.sh get <WATCHLIST_ID>
