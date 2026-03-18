@@ -5,3 +5,11 @@
 *.swo
 *~
 .DS_Store
+
+# Internal development tooling (not part of the skill)
+CLAUDE.md
+CODE_PRINCIPLES.md
+.coderabbit.yaml
+.claude/
+openspec/
+docs/superpowers/
