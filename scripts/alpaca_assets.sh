@@ -45,7 +45,11 @@ cmd_list() {
   _check_http_status "$HTTP_CODE" "$body" "list assets" || exit 1
 
   if [[ -n "$limit" ]]; then
-    body=$(echo "$body" | jq ".[0:$limit]")
+    if ! [[ "$limit" =~ ^[0-9]+$ ]]; then
+      echo '{"error":"--limit must be a positive integer"}' >&2
+      exit 1
+    fi
+    body=$(echo "$body" | jq ".[0:${limit}]")
   fi
 
   _json_output "$body"

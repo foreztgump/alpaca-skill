@@ -163,7 +163,7 @@ cmd_orderbook() {
 
   local url
   url=$(_build_url "$LIB_DATA_URL" "${BASE_PATH}/latest/orderbooks" \
-    "symbols=$(_urlencode "$symbol")")
+    "symbols=${symbol}")
 
   _fetch_and_output "orderbook" "$url"
 }

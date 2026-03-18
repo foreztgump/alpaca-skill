@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # scripts/_lib.sh — shared functions for Alpaca Markets API scripts
 # Source this file: source "${SCRIPT_DIR}/_lib.sh"
+# NOTE: Sourcing scripts MUST set 'set -euo pipefail' before sourcing.
 #
 # Security summary (for auditors):
 #   - External endpoints: paper-api.alpaca.markets, api.alpaca.markets, data.alpaca.markets
@@ -368,10 +369,12 @@ _paginate() {
       elif .activities then .activities
       elif .orders then .orders
       elif .positions then .positions
-      elif .bars then .bars
-      elif .trades then .trades
-      elif .quotes then .quotes
+      elif .bars then (.bars | if type == "object" then [to_entries[].value[]] else . end)
+      elif .trades then (.trades | if type == "object" then [to_entries[].value[]] else . end)
+      elif .quotes then (.quotes | if type == "object" then [to_entries[].value[]] else . end)
       elif .news then .news
+      elif .snapshots then .snapshots
+      elif .corporate_actions then .corporate_actions
       else [.]
       end // []
     ' >> "$tmpfile" 2>/dev/null
