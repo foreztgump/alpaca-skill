@@ -21,19 +21,27 @@ Claude Agent Skill for trading stocks and crypto via [Alpaca Markets API](https:
 ## Quick Start
 
 1. Get your API keys from [Alpaca Dashboard](https://app.alpaca.markets)
-2. Set environment variables:
+2. Copy `.env.example` to `.env` and fill in your keys:
    ```bash
-   export APCA_API_KEY_ID=your_key
-   export APCA_API_SECRET_KEY=your_secret
-   export APCA_PAPER=true  # default, use false for live trading
+   cp .env.example .env
+   # Edit .env with your keys:
+   #   APCA_PAPER_KEY=your_paper_key
+   #   APCA_PAPER_SECRET_KEY=your_paper_secret
+   #   APCA_REAL_KEY=your_live_key        (optional)
+   #   APCA_REAL_SECRET_KEY=your_live_secret  (optional)
    ```
-3. Install:
+3. Source and export:
+   ```bash
+   source .env
+   export APCA_PAPER_KEY APCA_PAPER_SECRET_KEY APCA_PAPER=true
+   ```
+4. Install:
    ```bash
    make install
    # or
    bash install.sh
    ```
-4. Restart Claude Code -- the skill activates automatically when you ask about trading.
+5. Restart Claude Code -- the skill activates automatically when you ask about trading.
 
 ## Requirements
 
