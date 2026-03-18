@@ -1,19 +1,13 @@
 ---
 name: alpaca
 description: >
-  Trade stocks and crypto via Alpaca Markets API. Use when the user asks to place
-  orders (buy/sell stocks, crypto), check positions, view account balance/portfolio,
-  manage watchlists, look up assets, check market hours, query market data
-  (stock/crypto/options prices, bars, quotes, trades, snapshots), read news,
-  find most active stocks or top movers, view options chains, or look up corporate
-  actions (dividends, splits). Supports paper and live trading.
-  Requires APCA_API_KEY_ID and APCA_API_SECRET_KEY env vars.
-  Covers: market/limit/stop/stop-limit/trailing-stop orders, bracket orders (OTO/OCO),
-  fractional shares, notional orders, position management, portfolio history,
-  account activities, asset search, stock and crypto market data (bars, quotes,
-  trades, snapshots, latest prices), options data (chain with greeks, bars, trades,
-  snapshots), crypto orderbook, news articles, screener (most active, movers),
-  corporate actions, watchlists, market clock and calendar.
+  Trades stocks, crypto, and options via Alpaca Markets API. Use when the user asks
+  to buy/sell stocks or crypto, check positions or account balance, view market data
+  (prices, bars, quotes, snapshots), read news, find most active stocks or movers,
+  view options chains with greeks, or look up corporate actions. Supports all order
+  types (market, limit, stop, bracket, trailing stop), fractional shares, watchlists,
+  portfolio history, and market clock. Paper trading by default. Requires APCA_PAPER_KEY
+  and APCA_PAPER_SECRET_KEY env vars (or APCA_REAL_KEY for live trading).
 allowed-tools: Bash
 ---
 
