@@ -364,6 +364,58 @@ timeout_custom=$(bash -c 'export APCA_API_KEY_ID=k; export APCA_API_SECRET_KEY=s
 assert_eq "HTTP_TIMEOUT custom" "30" "$timeout_custom"
 
 # =====================================================================
+# _strip_mode_flags tests
+# =====================================================================
+
+# Strip --live from middle of args
+stripped=$(bash -c 'export APCA_API_KEY_ID=k; export APCA_API_SECRET_KEY=s; source "'"$LIB_PATH"'"; eval set -- "$(_strip_mode_flags "--status" "open" "--live" "--limit" "50")"; echo "$*"')
+assert_eq "_strip_mode_flags removes --live" "open 50" "$(echo "$stripped" | sed 's/--status //;s/--limit //')"
+
+# Strip --paper from args
+stripped=$(bash -c 'export APCA_API_KEY_ID=k; export APCA_API_SECRET_KEY=s; source "'"$LIB_PATH"'"; eval set -- "$(_strip_mode_flags "--paper" "--status" "open")"; echo "$#:$*"')
+assert_contains "_strip_mode_flags removes --paper" "open" "$stripped"
+
+# No args produces zero args
+arg_count=$(bash -c 'export APCA_API_KEY_ID=k; export APCA_API_SECRET_KEY=s; source "'"$LIB_PATH"'"; eval set -- "$(_strip_mode_flags)"; echo "$#"')
+assert_eq "_strip_mode_flags no args" "0" "$arg_count"
+
+# Only --live produces zero args
+arg_count=$(bash -c 'export APCA_API_KEY_ID=k; export APCA_API_SECRET_KEY=s; source "'"$LIB_PATH"'"; eval set -- "$(_strip_mode_flags "--live")"; echo "$#"')
+assert_eq "_strip_mode_flags only --live" "0" "$arg_count"
+
+# Args with spaces preserved
+stripped=$(bash -c 'export APCA_API_KEY_ID=k; export APCA_API_SECRET_KEY=s; source "'"$LIB_PATH"'"; eval set -- "$(_strip_mode_flags "hello world" "--live" "foo")"; echo "$1|$2"')
+assert_eq "_strip_mode_flags preserves spaces" "hello world|foo" "$stripped"
+
+# =====================================================================
+# Mode resolution tests (--live/--paper flags + APCA_PAPER env)
+# =====================================================================
+
+# --live flag overrides APCA_PAPER=true
+mode=$(bash -c 'export APCA_API_KEY_ID=k; export APCA_API_SECRET_KEY=s; export APCA_PAPER=true; LIB_CALLER_ARGS=("--live"); source "'"$LIB_PATH"'"; echo "$LIB_TRADING_MODE"')
+assert_eq "--live flag overrides APCA_PAPER=true" "live" "$mode"
+
+# --paper flag overrides APCA_PAPER=false
+mode=$(bash -c 'export APCA_API_KEY_ID=k; export APCA_API_SECRET_KEY=s; export APCA_PAPER=false; LIB_CALLER_ARGS=("--paper"); source "'"$LIB_PATH"'"; echo "$LIB_TRADING_MODE"')
+assert_eq "--paper flag overrides APCA_PAPER=false" "paper" "$mode"
+
+# No flag falls back to APCA_PAPER=false
+mode=$(bash -c 'export APCA_API_KEY_ID=k; export APCA_API_SECRET_KEY=s; export APCA_PAPER=false; LIB_CALLER_ARGS=("list"); source "'"$LIB_PATH"'"; echo "$LIB_TRADING_MODE"')
+assert_eq "no flag falls back to APCA_PAPER=false" "live" "$mode"
+
+# No flag, no env defaults to paper
+mode=$(bash -c 'export APCA_API_KEY_ID=k; export APCA_API_SECRET_KEY=s; unset APCA_PAPER; LIB_CALLER_ARGS=("list"); source "'"$LIB_PATH"'"; echo "$LIB_TRADING_MODE"')
+assert_eq "no flag no env defaults to paper" "paper" "$mode"
+
+# --live resolves to live trading URL
+url=$(bash -c 'export APCA_API_KEY_ID=k; export APCA_API_SECRET_KEY=s; LIB_CALLER_ARGS=("submit" "AAPL" "--live"); source "'"$LIB_PATH"'"; echo "$LIB_TRADING_URL"')
+assert_eq "--live resolves to live URL" "https://api.alpaca.markets" "$url"
+
+# --live uses APCA_REAL_KEY
+key=$(bash -c 'export APCA_PAPER_KEY=paper; export APCA_PAPER_SECRET_KEY=ps; export APCA_REAL_KEY=real; export APCA_REAL_SECRET_KEY=rs; LIB_CALLER_ARGS=("--live"); source "'"$LIB_PATH"'"; echo "$APCA_API_KEY_ID"')
+assert_eq "--live uses APCA_REAL_KEY" "real" "$key"
+
+# =====================================================================
 # Summary
 # =====================================================================
 

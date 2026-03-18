@@ -215,7 +215,7 @@ All scripts source `_lib.sh` for shared HTTP functions. The library:
 - Uses **two credentials** (sent via HTTP headers, never in URLs): resolved from `APCA_PAPER_KEY`/`APCA_PAPER_SECRET_KEY` (paper) or `APCA_REAL_KEY`/`APCA_REAL_SECRET_KEY` (live), with `APCA_API_KEY_ID`/`APCA_API_SECRET_KEY` as fallback
 - Writes **only** to `~/.config/alpaca-skill/`
 - Does not read other environment variables (except `APCA_PAPER` and `APCA_TIMEOUT`), contact other hosts, or modify files outside its config directory
-- Defaults to **paper trading** — live trading requires explicit `APCA_PAPER=false`
+- Defaults to **paper trading** — live trading requires explicit `--live` flag or `APCA_PAPER=false`
 
 ## Additional Resources
 

@@ -9,7 +9,8 @@
 #     or APCA_REAL_KEY/APCA_REAL_SECRET_KEY (live), via HTTP headers, never in URLs
 #   - Fallback: APCA_API_KEY_ID/APCA_API_SECRET_KEY if mode-specific vars not set
 #   - Local writes: ~/.config/alpaca-skill/ only
-#   - No eval, no shell-outs to external tools
+#   - eval used only in _strip_mode_flags (via printf %q for safe quoting)
+#   - External tools: curl, jq, mktemp only
 
 # --- Constants ---
 # shellcheck disable=SC2034  # Constants used by scripts that source this library
@@ -34,17 +35,14 @@ trap 'rm -f "$_LIB_HTTP_CODE_FILE"' EXIT
 # Domain scripts should set LIB_CALLER_ARGS before sourcing:
 #   LIB_CALLER_ARGS=("$@"); source "${SCRIPT_DIR}/_lib.sh"
 
-_LIB_IS_PAPER="true"
+# Baseline from env var, then flags override
+_LIB_IS_PAPER="${APCA_PAPER:-true}"
 for _lib_arg in "${LIB_CALLER_ARGS[@]+"${LIB_CALLER_ARGS[@]}"}"; do
   case "$_lib_arg" in
     --live)  _LIB_IS_PAPER="false"; break ;;
     --paper) _LIB_IS_PAPER="true"; break ;;
   esac
 done
-# Fall back to env var if no flag found
-if [[ -z "${LIB_CALLER_ARGS+x}" ]]; then
-  _LIB_IS_PAPER="${APCA_PAPER:-true}"
-fi
 
 # Resolve trading URL
 if [[ "$_LIB_IS_PAPER" == "true" ]]; then
@@ -77,13 +75,18 @@ fi
 # _strip_mode_flags <args...>
 # Removes --live and --paper from argument list. Use in dispatch:
 #   set -- $(_strip_mode_flags "$@")
+# _strip_mode_flags <args...>
+# Removes --live and --paper from argument list. Use in dispatch:
+#   eval set -- "$(_strip_mode_flags "$@")"
 _strip_mode_flags() {
   local filtered=()
   for arg in "$@"; do
     [[ "$arg" == "--live" || "$arg" == "--paper" ]] && continue
     filtered+=("$arg")
   done
-  printf '%q ' "${filtered[@]}"
+  if [[ ${#filtered[@]} -gt 0 ]]; then
+    printf '%q ' "${filtered[@]}"
+  fi
 }
 
 # _require_api_key
