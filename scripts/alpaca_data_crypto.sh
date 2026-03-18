@@ -4,6 +4,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly SCRIPT_DIR
+# shellcheck source=_lib.sh
+source "${SCRIPT_DIR}/_lib.sh"
 # shellcheck source=_data_lib.sh
 source "${SCRIPT_DIR}/_data_lib.sh"
 
@@ -44,12 +46,26 @@ show_help() {
   Symbols: BTC is auto-expanded to BTC/USD"
 }
 
+# Crypto API uses query params (?symbols=BTC/USD) not per-symbol paths.
+# Override _data_lib.sh functions with direct query param construction.
+
 cmd_bars() {
   local symbol
   symbol=$(_normalize_crypto_symbol "${1:-}")
   _require_arg "symbol" "$symbol" "bars"
   shift
-  _data_bars "$BASE_PATH" "$symbol" "$@"
+  local start end timeframe limit sort_order currency
+  start=$(_parse_flag "--start" "$@"); _require_arg "start" "$start" "bars"
+  end=$(_parse_flag "--end" "$@")
+  timeframe=$(_parse_flag "--timeframe" "$@"); timeframe="${timeframe:-1Day}"
+  limit=$(_parse_flag "--limit" "$@")
+  sort_order=$(_parse_flag "--sort" "$@")
+  currency=$(_parse_flag "--currency" "$@")
+  local url
+  url=$(_build_url "$LIB_DATA_URL" "${BASE_PATH}/bars" \
+    "symbols=${symbol}" "start=${start}" "end=${end}" \
+    "timeframe=${timeframe}" "limit=${limit}" "sort=${sort_order}" "currency=${currency}")
+  _paginate_and_output "$url"
 }
 
 cmd_trades() {
@@ -57,7 +73,17 @@ cmd_trades() {
   symbol=$(_normalize_crypto_symbol "${1:-}")
   _require_arg "symbol" "$symbol" "trades"
   shift
-  _data_trades "$BASE_PATH" "$symbol" "$@"
+  local start end limit sort_order currency
+  start=$(_parse_flag "--start" "$@"); _require_arg "start" "$start" "trades"
+  end=$(_parse_flag "--end" "$@")
+  limit=$(_parse_flag "--limit" "$@")
+  sort_order=$(_parse_flag "--sort" "$@")
+  currency=$(_parse_flag "--currency" "$@")
+  local url
+  url=$(_build_url "$LIB_DATA_URL" "${BASE_PATH}/trades" \
+    "symbols=${symbol}" "start=${start}" "end=${end}" \
+    "limit=${limit}" "sort=${sort_order}" "currency=${currency}")
+  _paginate_and_output "$url"
 }
 
 cmd_quotes() {
@@ -65,7 +91,17 @@ cmd_quotes() {
   symbol=$(_normalize_crypto_symbol "${1:-}")
   _require_arg "symbol" "$symbol" "quotes"
   shift
-  _data_quotes "$BASE_PATH" "$symbol" "$@"
+  local start end limit sort_order currency
+  start=$(_parse_flag "--start" "$@"); _require_arg "start" "$start" "quotes"
+  end=$(_parse_flag "--end" "$@")
+  limit=$(_parse_flag "--limit" "$@")
+  sort_order=$(_parse_flag "--sort" "$@")
+  currency=$(_parse_flag "--currency" "$@")
+  local url
+  url=$(_build_url "$LIB_DATA_URL" "${BASE_PATH}/quotes" \
+    "symbols=${symbol}" "start=${start}" "end=${end}" \
+    "limit=${limit}" "sort=${sort_order}" "currency=${currency}")
+  _paginate_and_output "$url"
 }
 
 cmd_snapshot() {
@@ -73,35 +109,51 @@ cmd_snapshot() {
   symbol=$(_normalize_crypto_symbol "${1:-}")
   _require_arg "symbol" "$symbol" "snapshot"
   shift
-  _data_snapshot "$BASE_PATH" "$symbol" "$@"
+  local currency
+  currency=$(_parse_flag "--currency" "$@")
+  local url
+  url=$(_build_url "$LIB_DATA_URL" "${BASE_PATH}/snapshots" \
+    "symbols=${symbol}" "currency=${currency}")
+  _fetch_and_output "snapshot" "$url"
 }
 
 cmd_snapshots() {
   local symbols="${1:-}"
   _require_arg "symbols" "$symbols" "snapshots"
   shift
-  _data_snapshots "$BASE_PATH" "$symbols" "$@"
+  local currency
+  currency=$(_parse_flag "--currency" "$@")
+  local url
+  url=$(_build_url "$LIB_DATA_URL" "${BASE_PATH}/snapshots" \
+    "symbols=${symbols}" "currency=${currency}")
+  _fetch_and_output "snapshots" "$url"
 }
 
 cmd_latest_trade() {
   local symbol
   symbol=$(_normalize_crypto_symbol "${1:-}")
   _require_arg "symbol" "$symbol" "latest-trade"
-  _data_latest_trade "$BASE_PATH" "$symbol"
+  local url
+  url=$(_build_url "$LIB_DATA_URL" "${BASE_PATH}/latest/trades" "symbols=${symbol}")
+  _fetch_and_output "latest trade" "$url"
 }
 
 cmd_latest_quote() {
   local symbol
   symbol=$(_normalize_crypto_symbol "${1:-}")
   _require_arg "symbol" "$symbol" "latest-quote"
-  _data_latest_quote "$BASE_PATH" "$symbol"
+  local url
+  url=$(_build_url "$LIB_DATA_URL" "${BASE_PATH}/latest/quotes" "symbols=${symbol}")
+  _fetch_and_output "latest quote" "$url"
 }
 
 cmd_latest_bar() {
   local symbol
   symbol=$(_normalize_crypto_symbol "${1:-}")
   _require_arg "symbol" "$symbol" "latest-bar"
-  _data_latest_bar "$BASE_PATH" "$symbol"
+  local url
+  url=$(_build_url "$LIB_DATA_URL" "${BASE_PATH}/latest/bars" "symbols=${symbol}")
+  _fetch_and_output "latest bar" "$url"
 }
 
 cmd_orderbook() {

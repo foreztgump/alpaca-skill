@@ -5,9 +5,13 @@
 # All functions take base_path as first param so the same logic works
 # for stocks (/v2/stocks), crypto (/v1beta3/crypto/us), and options (/v1beta1/options).
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=_lib.sh
-source "${SCRIPT_DIR}/_lib.sh"
+# _data_lib.sh is sourced by domain scripts that already set SCRIPT_DIR and source _lib.sh.
+# If sourced standalone (e.g., tests), source _lib.sh ourselves.
+if ! declare -f _build_url &>/dev/null; then
+  _DATA_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  # shellcheck source=_lib.sh
+  source "${_DATA_LIB_DIR}/_lib.sh"
+fi
 
 # _encode_symbol <symbol>
 # URL-encode slashes in symbol for path segments (e.g. BTC/USD -> BTC%2FUSD).
