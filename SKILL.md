@@ -82,9 +82,9 @@ User wants to trade or check markets?
 │   ├── Historical quotes → alpaca_data_crypto.sh quotes <SYMBOL> --start <DATE> --end <DATE>
 │   └── Order book (bids/asks) → alpaca_data_crypto.sh orderbook <SYMBOL>
 ├── Options Market Data
-│   ├── Options chain (with greeks) → alpaca_data_options.sh chain <UNDERLYING> [--expiration-date <DATE>] [--type call]
+│   ├── Options chain (with greeks) → alpaca_data_options.sh chain <UNDERLYING> [--expiration-date <DATE>] [--type call] [--limit <N>]
 │   ├── Option snapshot → alpaca_data_options.sh snapshot <CONTRACT_SYMBOL>
-│   ├── Multi-option snapshots → alpaca_data_options.sh snapshots <SYM1,SYM2,...>
+│   ├── Multi-option snapshots → alpaca_data_options.sh snapshots <SYM1,SYM2,...> [--limit <N>]
 │   ├── Historical bars → alpaca_data_options.sh bars <CONTRACT_SYMBOL> --start <DATE> --end <DATE>
 │   ├── Historical trades → alpaca_data_options.sh trades <CONTRACT_SYMBOL> --start <DATE> --end <DATE>
 │   ├── Latest quote → alpaca_data_options.sh latest-quote <CONTRACT_SYMBOL>

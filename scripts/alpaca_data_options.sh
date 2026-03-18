@@ -28,14 +28,16 @@ show_help() {
   alpaca_data_options.sh latest-quote <symbol>
   alpaca_data_options.sh latest-trade <symbol>
   alpaca_data_options.sh snapshot <symbol>
-  alpaca_data_options.sh snapshots <SYMBOLS_CSV>
+  alpaca_data_options.sh snapshots <SYMBOLS_CSV> [options]
+    --limit <N>          Max results
 
   alpaca_data_options.sh chain <underlying> [options]
     --expiration-date <DATE>   Expiration date filter
     --type <V>                 call|put
     --strike-price-gte <P>     Min strike price
     --strike-price-lte <P>     Max strike price
-    --root-symbol <V>          Root symbol filter"
+    --root-symbol <V>          Root symbol filter
+    --limit <N>                Max results"
 }
 
 cmd_bars() {
