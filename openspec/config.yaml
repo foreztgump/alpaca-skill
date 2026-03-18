@@ -1,0 +1,68 @@
+schema: spec-driven
+
+context: |
+  Project: alpaca-skill
+  Overview: Claude Agent Skill wrapping Alpaca Markets REST API v2 for stock and crypto
+  trading. Pure bash (curl+jq) scripts following the Agent Skills open standard.
+  Enables AI agents to place/manage orders, check positions, view account info,
+  and query market data via Alpaca's paper and live trading APIs.
+
+  Stack: Bash scripts, curl, jq — no external dependencies beyond standard Unix tools.
+  Auth: APCA_API_KEY_ID + APCA_API_SECRET_KEY env vars. APCA_PAPER=true (default) for paper trading.
+  API: Alpaca Trading API v2 (REST), Alpaca Market Data API v2 (REST).
+  Base URLs:
+    Paper Trading: https://paper-api.alpaca.markets
+    Live Trading: https://api.alpaca.markets
+    Market Data: https://data.alpaca.markets
+  Rate Limits: 200 req/min (free), 10,000 req/min (paid). Single WebSocket connection per account.
+
+  Structure:
+    SKILL.md — Agent skill manifest with workflow decision tree
+    scripts/_lib.sh — Shared HTTP, auth, URL building, pagination
+    scripts/alpaca_account.sh — Account info, portfolio history, configurations
+    scripts/alpaca_orders.sh — Place/cancel/list/replace orders
+    scripts/alpaca_positions.sh — List/close positions
+    scripts/alpaca_assets.sh — Asset lookup, search, tradability
+    scripts/alpaca_market.sh — Clock, calendar, market status
+    scripts/alpaca_data_stocks.sh — Stock bars, quotes, trades, snapshots
+    scripts/alpaca_data_crypto.sh — Crypto bars, quotes, trades, snapshots
+    scripts/alpaca_watchlists.sh — Create/manage watchlists
+    scripts/alpaca_format.sh — JSON formatting for human-readable output
+    references/api-reference.md — Complete Alpaca API endpoint documentation
+    tests/ — Bash test scripts
+
+  Security:
+    - Scripts only contact Alpaca API endpoints (paper-api.alpaca.markets, api.alpaca.markets, data.alpaca.markets)
+    - Credentials sent via HTTP headers (APCA-API-KEY-ID, APCA-API-SECRET-KEY), never in URLs
+    - Paper trading is the default — live trading requires explicit APCA_PAPER=false
+    - No local file writes except to ~/.config/alpaca-skill/
+    - All order operations require explicit confirmation context in SKILL.md
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+  specs:
+    - Use Given/When/Then format
+  design:
+    - Include sequence diagrams for complex flows
+    - Prefer deep modules (simple interface, complex implementation)
+    - Address information hiding
+    - Consider at least two design approaches before committing
+    - Document dependency direction
+  tasks:
+    - Each task < 2 hours
+    - Include acceptance criteria
+    - Specify test files to create/update
+    - Include applicable code quality constraints from CODE_PRINCIPLES.md
+    - Specify error handling strategy for the task's scope
+  code:
+    - Functions do one thing
+    - No magic values — all literals that aren't self-evident must be named constants
+    - Prefer deep modules — simple interface, complex implementation
+    - Error handling is mandatory for all HTTP calls and external boundaries
+    - Names reveal intent — no abbreviations, no generic names
+    - Maximum 3 levels of nesting — use early returns, extraction, or guard clauses
+    - Comments explain WHY, not WHAT
+    - No duplicated logic — extract shared behavior into functions
+    - KISS — pick the simplest solution that works
+    - YAGNI — only build what the task requires
