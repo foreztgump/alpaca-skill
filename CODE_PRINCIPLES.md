@@ -56,7 +56,15 @@ Only build what the current task requires. No speculative abstractions.
 ### 10. Law of Demeter
 Functions interact with their direct inputs only. Don't chain through nested data structures.
 
-### 11. Exit Codes
+### 11. Input Validation
+User-provided values must be validated before interpolating into jq or shell expressions.
+Integers must match `^[0-9]+$`. Strings must be passed via `--arg` to jq, never interpolated.
+```bash
+# BAD: jq ".[0:$limit]" — limit could be injected
+# GOOD: validate [[ "$limit" =~ ^[0-9]+$ ]] first, or use jq --argjson
+```
+
+### 12. Exit Codes
 Exit 0 for success (results on stdout), exit 1 for errors (messages on stderr).
 
 ## Soft Guidelines (prefer — deviation acceptable with justification)

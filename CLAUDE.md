@@ -14,14 +14,33 @@ strategic programming. See CODE_PRINCIPLES.md for full details.
 - When stuck or confused for more than 2 attempts at the same problem, say so explicitly.
 - Prefer modifying existing patterns over introducing new ones.
 - Always request local code review (`superpowers:code-reviewer`) before committing.
+
+## Alpaca API Gotchas
 - Paper trading is the DEFAULT. Never switch to live (`APCA_PAPER=false`) without explicit user confirmation.
-- Alpaca auth headers are `APCA-API-KEY-ID` and `APCA-API-SECRET-KEY` — NOT `Authorization: Bearer`.
+- Auth uses separate key pairs per environment:
+  - Paper: `APCA_PAPER_KEY` + `APCA_PAPER_SECRET_KEY`
+  - Live: `APCA_REAL_KEY` + `APCA_REAL_SECRET_KEY`
+  - Fallback: `APCA_API_KEY_ID` + `APCA_API_SECRET_KEY`
+  - `_lib.sh` auto-resolves based on `APCA_PAPER` env var.
+- Auth headers are `APCA-API-KEY-ID` and `APCA-API-SECRET-KEY` — NOT `Authorization: Bearer`.
 - All monetary values from Alpaca are strings (not floats) — preserve as strings, never parse to float in bash.
-- Alpaca order quantities: `qty` is shares (integer), `notional` is dollar amount (string) — never mix them.
-- Alpaca timestamps are RFC 3339 (e.g., `2024-01-15T09:30:00Z`) — not Unix epoch.
-- Rate limit: 200 req/min free tier. Scripts must check for HTTP 429 and report clearly.
-- Market data pagination uses `page_token` parameter, not offset-based.
-- Crypto symbols use slash format in API: `BTC/USD`, not `BTCUSD`.
+- Order quantities: `qty` is shares (integer/decimal), `notional` is dollar amount (string) — never mix them.
+- Timestamps are RFC 3339 (e.g., `2024-01-15T09:30:00Z`) — not Unix epoch.
+- Rate limit: 200 req/min free tier. Scripts check for HTTP 429 and report clearly.
+- Pagination uses `page_token` / `next_page_token`, not offset-based.
+- Crypto symbols use slash format: `BTC/USD`, not `BTCUSD`. Auto-normalized by `alpaca_data_crypto.sh`.
+- Crypto API uses query params (`?symbols=BTC/USD`), NOT per-symbol path segments. Stock API uses per-symbol paths (`/v2/stocks/AAPL/bars`). This is why `alpaca_data_crypto.sh` has its own URL construction instead of delegating to `_data_lib.sh`.
+- Crypto orders only support `market`, `limit`, `stop_limit` types with `gtc` and `ioc` TIF.
+- Options use OCC contract format: `AAPL250321C00185000` (SYMBOL + YYMMDD + C/P + STRIKE*1000).
+- Options API uses `/v1beta1/options` prefix with multi-symbol query params.
+- `--limit` flag values must be validated as positive integers before interpolating into jq expressions (prevents jq injection).
+- Bulk cancel/close endpoints return HTTP 207 multi-status, not 200/204.
+
+## Testing
+- Run `bash tests/run_tests.sh` to run all tests (158 assertions across 4 suites)
+- Run `shellcheck scripts/*.sh` to lint all scripts
+- Tests mock `curl` — no real API calls in unit tests
+- Integration tests require paper credentials in `.env` (see `.env.example`)
 
 ## Tool Workflow
 - **Research**: Context7 (`resolve-library-id` → `query-docs`) → Tavily (`tavily_search`, `tavily_extract`, `tavily_research`, `tavily_crawl`, `tavily_map`) → OpenMemory (`openmemory query`). Never use built-in WebSearch or WebFetch.

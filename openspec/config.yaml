@@ -2,41 +2,53 @@ schema: spec-driven
 
 context: |
   Project: alpaca-skill
-  Overview: Claude Agent Skill wrapping Alpaca Markets REST API v2 for stock and crypto
-  trading. Pure bash (curl+jq) scripts following the Agent Skills open standard.
-  Enables AI agents to place/manage orders, check positions, view account info,
-  and query market data via Alpaca's paper and live trading APIs.
+  Overview: Claude Agent Skill wrapping Alpaca Markets REST API v2 for stock, crypto,
+  and options trading, market data, news, screener, and corporate actions.
+  Pure bash (curl+jq) scripts following the Agent Skills open standard.
 
   Stack: Bash scripts, curl, jq — no external dependencies beyond standard Unix tools.
-  Auth: APCA_API_KEY_ID + APCA_API_SECRET_KEY env vars. APCA_PAPER=true (default) for paper trading.
-  API: Alpaca Trading API v2 (REST), Alpaca Market Data API v2 (REST).
+  Auth: Auto-resolved from APCA_PAPER_KEY/APCA_REAL_KEY per environment, with
+  APCA_API_KEY_ID/APCA_API_SECRET_KEY as fallback. APCA_PAPER=true (default).
+  API: Alpaca Trading API v2 (REST), Alpaca Market Data API (REST).
   Base URLs:
     Paper Trading: https://paper-api.alpaca.markets
     Live Trading: https://api.alpaca.markets
     Market Data: https://data.alpaca.markets
-  Rate Limits: 200 req/min (free), 10,000 req/min (paid). Single WebSocket connection per account.
+  Rate Limits: 200 req/min (free), 10,000 req/min (paid).
 
-  Structure:
+  Structure (15 files: 2 shared libraries + 12 domain scripts + 1 formatter):
     SKILL.md — Agent skill manifest with workflow decision tree
-    scripts/_lib.sh — Shared HTTP, auth, URL building, pagination
-    scripts/alpaca_account.sh — Account info, portfolio history, configurations
-    scripts/alpaca_orders.sh — Place/cancel/list/replace orders
+    scripts/_lib.sh — Shared HTTP, auth, URL building, pagination, flag parsing
+    scripts/_data_lib.sh — Shared market data helpers (bars, trades, quotes, snapshots)
+    scripts/alpaca_account.sh — Account info, portfolio history, configurations, activities
+    scripts/alpaca_orders.sh — Place/cancel/list/replace orders, bracket, dry-run
     scripts/alpaca_positions.sh — List/close positions
-    scripts/alpaca_assets.sh — Asset lookup, search, tradability
-    scripts/alpaca_market.sh — Clock, calendar, market status
-    scripts/alpaca_data_stocks.sh — Stock bars, quotes, trades, snapshots
-    scripts/alpaca_data_crypto.sh — Crypto bars, quotes, trades, snapshots
+    scripts/alpaca_assets.sh — Asset lookup, search
+    scripts/alpaca_market.sh — Clock, calendar
+    scripts/alpaca_data_stocks.sh — Stock bars, quotes, trades, snapshots, latest
+    scripts/alpaca_data_crypto.sh — Crypto bars, quotes, trades, snapshots, orderbook
+    scripts/alpaca_data_options.sh — Options chain, bars, trades, snapshots
+    scripts/alpaca_news.sh — News articles
+    scripts/alpaca_screener.sh — Most active stocks, top movers
+    scripts/alpaca_corporate_actions.sh — Corporate actions (dividends, splits, mergers)
     scripts/alpaca_watchlists.sh — Create/manage watchlists
-    scripts/alpaca_format.sh — JSON formatting for human-readable output
-    references/api-reference.md — Complete Alpaca API endpoint documentation
-    tests/ — Bash test scripts
+    scripts/alpaca_format.sh — JSON formatting for human-readable output (18 types)
+    references/api-reference.md — Complete Alpaca API endpoint reference
+    tests/ — 4 test suites, 158 assertions
+
+  Key Architecture Decisions:
+    - Separate _api_get/_api_post/_api_patch/_api_delete (not generic _api_request)
+    - _data_lib.sh shared for stocks only; crypto uses own URL construction (query params vs path)
+    - Options standalone (different API pattern from stocks/crypto)
+    - Single jq -n call for order body construction (no chained subshells)
+    - No eval in production code; pagination uses separate jq -r calls
 
   Security:
-    - Scripts only contact Alpaca API endpoints (paper-api.alpaca.markets, api.alpaca.markets, data.alpaca.markets)
-    - Credentials sent via HTTP headers (APCA-API-KEY-ID, APCA-API-SECRET-KEY), never in URLs
-    - Paper trading is the default — live trading requires explicit APCA_PAPER=false
+    - Scripts only contact Alpaca API endpoints
+    - Credentials sent via HTTP headers, never in URLs or logs
+    - Paper trading is default — live requires explicit APCA_PAPER=false
+    - Input validation on user-provided values interpolated into jq
     - No local file writes except to ~/.config/alpaca-skill/
-    - All order operations require explicit confirmation context in SKILL.md
 
 rules:
   proposal:
@@ -60,6 +72,7 @@ rules:
     - No magic values — all literals that aren't self-evident must be named constants
     - Prefer deep modules — simple interface, complex implementation
     - Error handling is mandatory for all HTTP calls and external boundaries
+    - Validate user input before interpolating into jq or shell expressions
     - Names reveal intent — no abbreviations, no generic names
     - Maximum 3 levels of nesting — use early returns, extraction, or guard clauses
     - Comments explain WHY, not WHAT

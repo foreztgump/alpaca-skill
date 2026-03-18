@@ -14,16 +14,25 @@ reviews:
         - Naming: do names reveal intent using snake_case?
         - No magic values: are all literals named constants?
         - Security: no credentials in URLs, no eval, no command injection
+        - Input validation: user-provided values must be validated before interpolation into jq/shell
+        - Crypto: uses query params (?symbols=BTC/USD), NOT per-symbol path segments
+        - Auth: uses APCA-API-KEY-ID/APCA-API-SECRET-KEY headers, never URL params
     - path: "tests/**/*.sh"
       instructions: |
         Tests follow Arrange-Act-Assert. Each test covers one behavior.
         Test names describe expected behavior, not implementation details.
         No test logic duplication — use helpers for shared setup.
+        Tests must mock curl — no real API calls in unit tests.
     - path: "SKILL.md"
       instructions: |
         Verify: frontmatter has name + description, workflow decision tree is
         complete and accurate, all scripts are referenced, behavior rules cover
-        edge cases, security section is accurate.
+        edge cases, security section is accurate, OCC format documented for options.
+    - path: "references/**/*.md"
+      instructions: |
+        Verify all endpoints listed match actual script implementations.
+        Check HTTP methods, paths, and query params are accurate.
+        Ensure no endpoints are missing from scripts or vice versa.
   tools:
     shellcheck:
       enabled: true
@@ -41,6 +50,7 @@ reviews:
         7. Generic names (data, info, item, temp, result) in scopes longer than 3 lines
         8. Speculative abstractions — code that handles cases not required by the current task (YAGNI)
         9. Credentials appearing in URLs or log output
+        10. User input interpolated into jq expressions without integer/string validation
         Pass if no violations found. Warn with specific file:line references for each violation.
 knowledge_base:
   code_guidelines:
