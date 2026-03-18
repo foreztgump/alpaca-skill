@@ -16,7 +16,7 @@ Claude Agent Skill for trading stocks and crypto via [Alpaca Markets API](https:
 - **Account**: Balance, buying power, portfolio history, configurations, activity log
 - **Watchlists**: Create and manage watchlists
 - **Market Info**: Clock, calendar, asset lookup
-- **Safety**: Paper trading by default
+- **Safety**: Paper trading by default, `--live` flag for real trading per-command
 
 ## Quick Start
 
@@ -70,6 +70,22 @@ Claude Agent Skill for trading stocks and crypto via [Alpaca Markets API](https:
 | `alpaca_watchlists.sh` | Watchlist CRUD |
 | `alpaca_format.sh` | Format JSON output for human-readable display |
 
+## Paper vs Live Trading
+
+All commands default to **paper trading**. Append `--live` to any command for real trading:
+
+```bash
+# Paper trading (default)
+scripts/alpaca_orders.sh submit AAPL buy market --qty 1
+scripts/alpaca_account.sh info
+
+# Live trading
+scripts/alpaca_orders.sh submit AAPL buy market --qty 1 --live
+scripts/alpaca_account.sh info --live
+```
+
+Both paper and live keys can be set simultaneously in `.env`. The `--live`/`--paper` flag works on any script, any subcommand, anywhere in the args.
+
 ## Usage Examples
 
 Ask Claude naturally:
@@ -85,6 +101,7 @@ Ask Claude naturally:
 - "Show me the latest news for TSLA"
 - "What dividends has AAPL paid recently?"
 - "Who are the top movers today?"
+- "Buy 5 shares of TSLA on my live account"
 
 ## License
 
