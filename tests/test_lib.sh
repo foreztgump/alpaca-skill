@@ -84,13 +84,25 @@ assert_exit_code "_require_api_key exits 1 when APCA_API_SECRET_KEY missing" 1 \
 assert_exit_code "_require_api_key succeeds when both keys set" 0 \
   bash -c 'export APCA_API_KEY_ID=test; export APCA_API_SECRET_KEY=secret; source "'"$LIB_PATH"'"'
 
-# Verify error message content for missing key ID
-error_output=$(bash -c 'unset APCA_API_KEY_ID; unset APCA_API_SECRET_KEY; source "'"$LIB_PATH"'"' 2>&1 || true)
-assert_contains "_require_api_key error mentions APCA_API_KEY_ID" "APCA_API_KEY_ID" "$error_output"
+# Verify error message content for missing key
+error_output=$(bash -c 'unset APCA_API_KEY_ID; unset APCA_API_SECRET_KEY; unset APCA_PAPER_KEY; unset APCA_REAL_KEY; source "'"$LIB_PATH"'"' 2>&1 || true)
+assert_contains "_require_api_key error mentions API key" "API key" "$error_output"
 
-# Verify error message content for missing secret key
-error_output=$(bash -c 'export APCA_API_KEY_ID=test; unset APCA_API_SECRET_KEY; source "'"$LIB_PATH"'"' 2>&1 || true)
-assert_contains "_require_api_key error mentions APCA_API_SECRET_KEY" "APCA_API_SECRET_KEY" "$error_output"
+# Verify error message content for missing secret
+error_output=$(bash -c 'export APCA_API_KEY_ID=test; unset APCA_API_SECRET_KEY; unset APCA_PAPER_SECRET_KEY; unset APCA_REAL_SECRET_KEY; source "'"$LIB_PATH"'"' 2>&1 || true)
+assert_contains "_require_api_key error mentions API secret" "API secret" "$error_output"
+
+# Verify paper key resolution: APCA_PAPER_KEY takes priority over APCA_API_KEY_ID
+resolved_key=$(bash -c 'export APCA_PAPER_KEY=paper-key; export APCA_PAPER_SECRET_KEY=paper-secret; export APCA_API_KEY_ID=fallback; export APCA_API_SECRET_KEY=fallback-secret; export APCA_PAPER=true; source "'"$LIB_PATH"'"; echo "$APCA_API_KEY_ID"')
+assert_eq "APCA_PAPER_KEY resolves to APCA_API_KEY_ID in paper mode" "paper-key" "$resolved_key"
+
+# Verify live key resolution: APCA_REAL_KEY takes priority
+resolved_key=$(bash -c 'export APCA_REAL_KEY=real-key; export APCA_REAL_SECRET_KEY=real-secret; export APCA_API_KEY_ID=fallback; export APCA_API_SECRET_KEY=fallback-secret; export APCA_PAPER=false; source "'"$LIB_PATH"'"; echo "$APCA_API_KEY_ID"')
+assert_eq "APCA_REAL_KEY resolves to APCA_API_KEY_ID in live mode" "real-key" "$resolved_key"
+
+# Verify fallback: APCA_API_KEY_ID used when mode-specific not set
+resolved_key=$(bash -c 'unset APCA_PAPER_KEY; unset APCA_REAL_KEY; export APCA_API_KEY_ID=fallback-key; export APCA_API_SECRET_KEY=fallback-secret; export APCA_PAPER=true; source "'"$LIB_PATH"'"; echo "$APCA_API_KEY_ID"')
+assert_eq "Falls back to APCA_API_KEY_ID when APCA_PAPER_KEY not set" "fallback-key" "$resolved_key"
 
 # =====================================================================
 # _build_url tests

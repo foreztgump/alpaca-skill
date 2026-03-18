@@ -23,8 +23,10 @@ Trade stocks and crypto, manage positions, and query market data via Alpaca Mark
 
 ## Prerequisites
 
-- `APCA_API_KEY_ID` environment variable must be set
-- `APCA_API_SECRET_KEY` environment variable must be set
+- Alpaca API credentials must be set via environment variables:
+  - **Paper trading**: `APCA_PAPER_KEY` and `APCA_PAPER_SECRET_KEY`
+  - **Live trading**: `APCA_REAL_KEY` and `APCA_REAL_SECRET_KEY`
+  - **Fallback**: `APCA_API_KEY_ID` and `APCA_API_SECRET_KEY` (used if mode-specific vars not set)
 - `APCA_PAPER` environment variable controls paper vs live trading (default: `true`)
 - `curl` and `jq` must be available
 
@@ -216,7 +218,7 @@ ${CLAUDE_SKILL_DIR}/scripts/alpaca_orders.sh list --status open
 All scripts source `_lib.sh` for shared HTTP functions. The library:
 
 - Makes requests to **three endpoints only**: `paper-api.alpaca.markets`, `api.alpaca.markets`, `data.alpaca.markets`
-- Uses **two credentials**: `APCA_API_KEY_ID` and `APCA_API_SECRET_KEY` (sent via HTTP headers, never in URLs)
+- Uses **two credentials** (sent via HTTP headers, never in URLs): resolved from `APCA_PAPER_KEY`/`APCA_PAPER_SECRET_KEY` (paper) or `APCA_REAL_KEY`/`APCA_REAL_SECRET_KEY` (live), with `APCA_API_KEY_ID`/`APCA_API_SECRET_KEY` as fallback
 - Writes **only** to `~/.config/alpaca-skill/`
 - Does not read other environment variables (except `APCA_PAPER` and `APCA_TIMEOUT`), contact other hosts, or modify files outside its config directory
 - Defaults to **paper trading** — live trading requires explicit `APCA_PAPER=false`

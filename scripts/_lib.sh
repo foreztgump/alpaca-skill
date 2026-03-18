@@ -4,10 +4,11 @@
 #
 # Security summary (for auditors):
 #   - External endpoints: paper-api.alpaca.markets, api.alpaca.markets, data.alpaca.markets
-#   - Credentials: APCA_API_KEY_ID + APCA_API_SECRET_KEY (via HTTP headers, never in URLs)
+#   - Credentials: resolved from APCA_PAPER_KEY/APCA_PAPER_SECRET_KEY (paper)
+#     or APCA_REAL_KEY/APCA_REAL_SECRET_KEY (live), via HTTP headers, never in URLs
+#   - Fallback: APCA_API_KEY_ID/APCA_API_SECRET_KEY if mode-specific vars not set
 #   - Local writes: ~/.config/alpaca-skill/ only
-#   - No eval, no shell-outs to external tools, no other env vars read
-#     (except APCA_PAPER, APCA_TIMEOUT)
+#   - No eval, no shell-outs to external tools
 
 # --- Constants ---
 # shellcheck disable=SC2034  # Constants used by scripts that source this library
@@ -32,15 +33,28 @@ trap 'rm -f "$_LIB_HTTP_CODE_FILE"' EXIT
 
 # --- Auth ---
 
+# Resolve API key and secret based on paper/live mode.
+# Priority: mode-specific vars > generic vars
+# Paper mode: APCA_PAPER_KEY / APCA_PAPER_SECRET_KEY
+# Live mode:  APCA_REAL_KEY / APCA_REAL_SECRET_KEY
+# Fallback:   APCA_API_KEY_ID / APCA_API_SECRET_KEY
+if [[ "${APCA_PAPER:-true}" == "true" ]]; then
+  APCA_API_KEY_ID="${APCA_PAPER_KEY:-${APCA_API_KEY_ID:-}}"
+  APCA_API_SECRET_KEY="${APCA_PAPER_SECRET_KEY:-${APCA_API_SECRET_KEY:-}}"
+else
+  APCA_API_KEY_ID="${APCA_REAL_KEY:-${APCA_API_KEY_ID:-}}"
+  APCA_API_SECRET_KEY="${APCA_REAL_SECRET_KEY:-${APCA_API_SECRET_KEY:-}}"
+fi
+
 # _require_api_key
-# Validates APCA_API_KEY_ID and APCA_API_SECRET_KEY are set. Exits with error if not.
+# Validates resolved API credentials are set. Exits with error if not.
 _require_api_key() {
   if [[ -z "${APCA_API_KEY_ID:-}" ]]; then
-    echo '{"error":"APCA_API_KEY_ID environment variable is not set"}' >&2
+    echo '{"error":"API key not set. Set APCA_PAPER_KEY (paper) or APCA_REAL_KEY (live), or APCA_API_KEY_ID as fallback."}' >&2
     exit 1
   fi
   if [[ -z "${APCA_API_SECRET_KEY:-}" ]]; then
-    echo '{"error":"APCA_API_SECRET_KEY environment variable is not set"}' >&2
+    echo '{"error":"API secret not set. Set APCA_PAPER_SECRET_KEY (paper) or APCA_REAL_SECRET_KEY (live), or APCA_API_SECRET_KEY as fallback."}' >&2
     exit 1
   fi
 }
