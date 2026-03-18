@@ -3,13 +3,17 @@ name: alpaca
 description: >
   Trade stocks and crypto via Alpaca Markets API. Use when the user asks to place
   orders (buy/sell stocks, crypto), check positions, view account balance/portfolio,
-  manage watchlists, look up assets, check market hours, or query market data
-  (stock/crypto prices, bars, quotes, trades, snapshots). Supports paper and live
-  trading. Requires APCA_API_KEY_ID and APCA_API_SECRET_KEY env vars.
+  manage watchlists, look up assets, check market hours, query market data
+  (stock/crypto/options prices, bars, quotes, trades, snapshots), read news,
+  find most active stocks or top movers, view options chains, or look up corporate
+  actions (dividends, splits). Supports paper and live trading.
+  Requires APCA_API_KEY_ID and APCA_API_SECRET_KEY env vars.
   Covers: market/limit/stop/stop-limit/trailing-stop orders, bracket orders (OTO/OCO),
   fractional shares, notional orders, position management, portfolio history,
-  account configurations, asset search, stock and crypto market data (bars, quotes,
-  trades, snapshots, latest prices), watchlists, market clock and calendar.
+  account activities, asset search, stock and crypto market data (bars, quotes,
+  trades, snapshots, latest prices), options data (chain with greeks, bars, trades,
+  snapshots), crypto orderbook, news articles, screener (most active, movers),
+  corporate actions, watchlists, market clock and calendar.
 allowed-tools: Bash
 ---
 
@@ -79,7 +83,23 @@ User wants to trade or check markets?
 │   ├── Latest trade → alpaca_data_crypto.sh latest-trade <SYMBOL>
 │   ├── Latest bar → alpaca_data_crypto.sh latest-bar <SYMBOL>
 │   ├── Historical trades → alpaca_data_crypto.sh trades <SYMBOL> --start <DATE> --end <DATE>
-│   └── Historical quotes → alpaca_data_crypto.sh quotes <SYMBOL> --start <DATE> --end <DATE>
+│   ├── Historical quotes → alpaca_data_crypto.sh quotes <SYMBOL> --start <DATE> --end <DATE>
+│   └── Order book (bids/asks) → alpaca_data_crypto.sh orderbook <SYMBOL>
+├── Options Market Data
+│   ├── Options chain (with greeks) → alpaca_data_options.sh chain <UNDERLYING> [--expiration-date <DATE>] [--type call]
+│   ├── Option snapshot → alpaca_data_options.sh snapshot <CONTRACT_SYMBOL>
+│   ├── Multi-option snapshots → alpaca_data_options.sh snapshots <SYM1,SYM2,...>
+│   ├── Historical bars → alpaca_data_options.sh bars <CONTRACT_SYMBOL> --start <DATE> --end <DATE>
+│   ├── Historical trades → alpaca_data_options.sh trades <CONTRACT_SYMBOL> --start <DATE> --end <DATE>
+│   ├── Latest quote → alpaca_data_options.sh latest-quote <CONTRACT_SYMBOL>
+│   └── Latest trade → alpaca_data_options.sh latest-trade <CONTRACT_SYMBOL>
+├── News
+│   └── News articles → alpaca_news.sh list [--symbols AAPL,TSLA] [--start <DATE>] [--limit 10]
+├── Screener
+│   ├── Most active stocks → alpaca_screener.sh most-active [--by volume] [--top 10]
+│   └── Top movers (gainers/losers) → alpaca_screener.sh movers [--top 10]
+├── Corporate Actions
+│   └── Dividends/splits/mergers → alpaca_corporate_actions.sh list [--symbols AAPL] [--types dividend,split] [--date-from <DATE>]
 └── Watchlists
     ├── List watchlists → alpaca_watchlists.sh list
     ├── Get watchlist → alpaca_watchlists.sh get <WATCHLIST_ID>
@@ -101,7 +121,11 @@ User wants to trade or check markets?
 | `alpaca_assets.sh` | Asset lookup & search | `get`, `list` |
 | `alpaca_market.sh` | Market clock & calendar | `clock`, `calendar` |
 | `alpaca_data_stocks.sh` | Stock market data | `bars`, `trades`, `quotes`, `snapshot`, `snapshots`, `latest-quote`, `latest-trade`, `latest-bar` |
-| `alpaca_data_crypto.sh` | Crypto market data | `bars`, `trades`, `quotes`, `snapshot`, `snapshots`, `latest-quote`, `latest-trade`, `latest-bar` |
+| `alpaca_data_crypto.sh` | Crypto market data | `bars`, `trades`, `quotes`, `snapshot`, `snapshots`, `latest-quote`, `latest-trade`, `latest-bar`, `orderbook` |
+| `alpaca_data_options.sh` | Options market data | `bars`, `trades`, `snapshot`, `snapshots`, `chain`, `latest-quote`, `latest-trade` |
+| `alpaca_news.sh` | News articles | `list` |
+| `alpaca_screener.sh` | Screener & movers | `most-active`, `movers` |
+| `alpaca_corporate_actions.sh` | Corporate actions | `list` |
 | `alpaca_watchlists.sh` | Watchlist management | `list`, `get`, `create`, `add-symbol`, `remove-symbol`, `delete` |
 | `alpaca_format.sh` | Format JSON for display | `--type`, `--format`, `--top` |
 
@@ -156,6 +180,8 @@ ${CLAUDE_SKILL_DIR}/scripts/alpaca_orders.sh list --status open
 10. **Crypto trades 24/7.** Stock trades only during market hours (check with `alpaca_market.sh clock`).
 11. **Extended hours:** Use `--extended-hours` flag on limit orders to trade in pre/post market.
 12. **Pagination uses `page_token`**, not offset. The scripts handle this automatically (max 10 pages).
+13. **Options contract symbols use OCC format**: `AAPL250321C00185000` (SYMBOL + YYMMDD + C/P + STRIKE*1000).
+14. **News articles are paginated**. Use `--limit` to control batch size, scripts auto-paginate.
 
 ## Order Types Reference
 

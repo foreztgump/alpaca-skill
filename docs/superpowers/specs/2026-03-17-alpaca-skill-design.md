@@ -10,9 +10,26 @@ Claude Agent Skill wrapping Alpaca Markets REST API v2 for stock and crypto trad
 
 **Files:**
 - `_lib.sh` — HTTP primitives, auth, pagination, flag parsing
-- `_data_lib.sh` — shared market data helpers (bars, trades, quotes, snapshots)
-- 8 domain scripts — thin wrappers over the libraries
+- `_data_lib.sh` — shared market data helpers (bars, trades, quotes, snapshots) for stocks and crypto
+- 12 domain scripts — thin wrappers over the libraries
 - `alpaca_format.sh` — local JSON formatter, no API calls
+
+**Script inventory (14 total):**
+1. `_lib.sh` — shared HTTP/auth/pagination
+2. `_data_lib.sh` — shared stock/crypto data helpers
+3. `alpaca_account.sh` — account info, portfolio history, config, activities
+4. `alpaca_orders.sh` — place/cancel/list/replace orders
+5. `alpaca_positions.sh` — list/close positions
+6. `alpaca_assets.sh` — asset lookup, search
+7. `alpaca_market.sh` — clock, calendar
+8. `alpaca_data_stocks.sh` — stock bars, trades, quotes, snapshots, latest
+9. `alpaca_data_crypto.sh` — crypto bars, trades, quotes, snapshots, latest, orderbook
+10. `alpaca_data_options.sh` — options bars, trades, quotes, snapshots, chain
+11. `alpaca_news.sh` — news articles
+12. `alpaca_screener.sh` — most active stocks, top movers
+13. `alpaca_corporate_actions.sh` — corporate actions (dividends, splits, mergers, etc.)
+14. `alpaca_watchlists.sh` — create/manage watchlists
+15. `alpaca_format.sh` — JSON formatting for display
 
 **Key design decision:** Separate `_api_get`, `_api_post`, `_api_patch`, `_api_delete` functions rather than a generic `_api_request`. All delegate to a private `_http_request`. This makes destructive operations visible during code review and allows per-method success code handling.
 
@@ -255,9 +272,60 @@ Adds `--feed` flag support (sip/iex).
 Thin wrapper. Sets `BASE_PATH="/v1beta3/crypto/us"`, dispatches to `_data_lib.sh` functions.
 Normalizes symbols to slash format, URL-encodes for path segments.
 
-Same subcommands as stocks. Adds `--currency` flag.
+Same subcommands as stocks, plus:
+
+| Subcommand | Delegates to |
+|------------|-------------|
+| `orderbook <symbol>` | Direct `_api_get` — `GET /v1beta3/crypto/us/latest/orderbooks?symbols={symbol}` |
+
+Adds `--currency` flag to data endpoints.
 
 **Note on crypto orders:** Crypto only supports `market`, `limit`, `stop_limit` order types with `gtc` and `ioc` time-in-force. The `alpaca_orders.sh submit` validation should warn if unsupported types/TIF are used with crypto symbols (detected by slash in symbol).
+
+### `alpaca_data_options.sh` — Options Market Data
+
+Uses Market Data API base URL (`LIB_DATA_URL`). Options data uses `/v1beta1/options` prefix.
+
+| Subcommand | HTTP | Endpoint | Notes |
+|------------|------|----------|-------|
+| `bars <symbol> [flags]` | GET | `/v1beta1/options/bars?symbols={symbol}&...` | Flags: `--start`, `--end`, `--timeframe`, `--limit`, `--sort`. Paginated. |
+| `trades <symbol> [flags]` | GET | `/v1beta1/options/trades?symbols={symbol}&...` | Flags: `--start`, `--end`, `--limit`, `--sort`. Paginated. |
+| `latest-quote <symbol>` | GET | `/v1beta1/options/quotes/latest?symbols={symbol}` | |
+| `latest-trade <symbol>` | GET | `/v1beta1/options/trades/latest?symbols={symbol}` | |
+| `snapshot <symbol>` | GET | `/v1beta1/options/snapshots/{symbol}` | Returns greeks + latest trade/quote |
+| `snapshots [flags]` | GET | `/v1beta1/options/snapshots?symbols={csv}` | Multi-symbol. Paginated. |
+| `chain <underlying> [flags]` | GET | `/v1beta1/options/snapshots/{underlying}` | Flags: `--expiration-date`, `--type` (call/put), `--strike-price-gte`, `--strike-price-lte`, `--root-symbol`. Returns chain with greeks. Paginated. |
+
+**Note:** Options use OCC contract symbol format: `AAPL250321C00185000` (SYMBOL + YYMMDD + C/P + STRIKE*1000). The option chain endpoint is especially useful — it returns all contracts for an underlying with greeks in one call.
+
+**Note:** Options data is separate from `_data_lib.sh` because its endpoint structure differs (multi-symbol query params rather than per-symbol paths, different pagination, greeks in snapshots). A separate script is cleaner than forcing it into the shared helpers.
+
+### `alpaca_news.sh` — News Articles
+
+Uses Market Data API base URL (`LIB_DATA_URL`).
+
+| Subcommand | HTTP | Endpoint | Notes |
+|------------|------|----------|-------|
+| `list [flags]` | GET | `/v1beta1/news` | Flags: `--symbols` (CSV), `--start`, `--end`, `--limit`, `--sort`, `--include-content`, `--exclude-contentless`. Paginated via `page_token`. |
+
+Returns news articles with: id, headline, author, source, summary, content (if `--include-content`), symbols, created_at, updated_at, images.
+
+### `alpaca_screener.sh` — Screener (Most Active & Movers)
+
+Uses Market Data API base URL (`LIB_DATA_URL`).
+
+| Subcommand | HTTP | Endpoint | Notes |
+|------------|------|----------|-------|
+| `most-active [flags]` | GET | `/v1beta1/screener/stocks/most-actives` | Flags: `--by` (volume or trades, default: volume), `--top` (default: 10). |
+| `movers [flags]` | GET | `/v1beta1/screener/{market_type}/movers` | Flags: `--market-type` (stocks, default), `--top` (default: 10). Returns top gainers and losers. |
+
+### `alpaca_corporate_actions.sh` — Corporate Actions
+
+Uses Market Data API base URL (`LIB_DATA_URL`).
+
+| Subcommand | HTTP | Endpoint | Notes |
+|------------|------|----------|-------|
+| `list [flags]` | GET | `/v1beta1/corporate-actions` | Flags: `--symbols` (CSV), `--types` (CSV of: dividend, merger, spinoff, split, etc.), `--date-from`, `--date-to`, `--limit`, `--sort`, `--page-token`. Paginated. |
 
 ### `alpaca_watchlists.sh` — Watchlist Management
 
@@ -274,7 +342,7 @@ Same subcommands as stocks. Adds `--currency` flag.
 
 Local-only (no `_lib.sh`, no API calls). Same pattern as massive-skill's `massive_format.sh`.
 
-**Types:** `account`, `activities`, `orders`, `positions`, `assets`, `bars`, `trades`, `quotes`, `snapshot`, `watchlists`, `calendar`, `clock`
+**Types:** `account`, `activities`, `orders`, `positions`, `assets`, `bars`, `trades`, `quotes`, `snapshot`, `watchlists`, `calendar`, `clock`, `news`, `movers`, `options`, `option-chain`, `corporate-actions`, `orderbook`
 
 **Formats:** `summary` (default human-readable), `full` (pretty JSON), `csv`
 
