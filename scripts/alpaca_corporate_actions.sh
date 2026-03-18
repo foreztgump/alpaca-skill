@@ -37,7 +37,7 @@ cmd_list() {
     "limit=${limit}" \
     "sort=${sort_order}")
 
-  _paginate_and_output "$url"
+  _paginate_and_output "$url" "$limit"
 }
 
 # --- Main dispatch ---

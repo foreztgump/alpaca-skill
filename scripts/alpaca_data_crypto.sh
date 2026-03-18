@@ -66,7 +66,7 @@ cmd_bars() {
   url=$(_build_url "$LIB_DATA_URL" "${BASE_PATH}/bars" \
     "symbols=${symbol}" "start=${start}" "end=${end}" \
     "timeframe=${timeframe}" "limit=${limit}" "sort=${sort_order}" "currency=${currency}")
-  _paginate_and_output "$url"
+  _paginate_and_output "$url" "$limit"
 }
 
 cmd_trades() {
@@ -84,7 +84,7 @@ cmd_trades() {
   url=$(_build_url "$LIB_DATA_URL" "${BASE_PATH}/trades" \
     "symbols=${symbol}" "start=${start}" "end=${end}" \
     "limit=${limit}" "sort=${sort_order}" "currency=${currency}")
-  _paginate_and_output "$url"
+  _paginate_and_output "$url" "$limit"
 }
 
 cmd_quotes() {
@@ -102,7 +102,7 @@ cmd_quotes() {
   url=$(_build_url "$LIB_DATA_URL" "${BASE_PATH}/quotes" \
     "symbols=${symbol}" "start=${start}" "end=${end}" \
     "limit=${limit}" "sort=${sort_order}" "currency=${currency}")
-  _paginate_and_output "$url"
+  _paginate_and_output "$url" "$limit"
 }
 
 cmd_snapshot() {

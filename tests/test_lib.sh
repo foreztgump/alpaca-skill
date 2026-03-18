@@ -355,13 +355,19 @@ data_url=$(bash -c 'export APCA_API_KEY_ID=k; export APCA_API_SECRET_KEY=s; sour
 assert_eq "LIB_DATA_URL" "https://data.alpaca.markets" "$data_url"
 
 max_pages=$(bash -c 'export APCA_API_KEY_ID=k; export APCA_API_SECRET_KEY=s; source "'"$LIB_PATH"'"; echo "$LIB_MAX_PAGES"')
-assert_eq "LIB_MAX_PAGES" "10" "$max_pages"
+assert_eq "LIB_MAX_PAGES" "5" "$max_pages"
 
 timeout_val=$(bash -c 'export APCA_API_KEY_ID=k; export APCA_API_SECRET_KEY=s; source "'"$LIB_PATH"'"; echo "$HTTP_TIMEOUT"')
 assert_eq "HTTP_TIMEOUT default" "15" "$timeout_val"
 
 timeout_custom=$(bash -c 'export APCA_API_KEY_ID=k; export APCA_API_SECRET_KEY=s; export APCA_TIMEOUT=30; source "'"$LIB_PATH"'"; echo "$HTTP_TIMEOUT"')
 assert_eq "HTTP_TIMEOUT custom" "30" "$timeout_custom"
+
+paginate_timeout=$(bash -c 'export APCA_API_KEY_ID=k; export APCA_API_SECRET_KEY=s; source "'"$LIB_PATH"'"; echo "$LIB_PAGINATE_TIMEOUT"')
+assert_eq "LIB_PAGINATE_TIMEOUT default" "120" "$paginate_timeout"
+
+paginate_timeout_custom=$(bash -c 'export APCA_API_KEY_ID=k; export APCA_API_SECRET_KEY=s; export APCA_PAGINATE_TIMEOUT=60; source "'"$LIB_PATH"'"; echo "$LIB_PAGINATE_TIMEOUT"')
+assert_eq "LIB_PAGINATE_TIMEOUT custom" "60" "$paginate_timeout_custom"
 
 # =====================================================================
 # _strip_mode_flags tests

@@ -17,10 +17,13 @@
 
 readonly LIB_DATA_URL="https://data.alpaca.markets"
 readonly LIB_CONFIG_DIR="${HOME}/.config/alpaca-skill"
-readonly LIB_MAX_PAGES=10
+readonly LIB_MAX_PAGES=5
 
-# HTTP timeout in seconds
+# HTTP timeout in seconds (per request)
 readonly HTTP_TIMEOUT="${APCA_TIMEOUT:-15}"
+
+# Wall-clock timeout for entire pagination loop (seconds)
+readonly LIB_PAGINATE_TIMEOUT="${APCA_PAGINATE_TIMEOUT:-120}"
 
 # File used to persist HTTP_CODE across subshells (deterministic path, no mktemp fork)
 _LIB_HTTP_CODE_FILE="/tmp/.alpaca_http_code_$$"
@@ -378,23 +381,76 @@ _fetch_and_output() {
   _json_output "$body"
 }
 
-# _paginate <url> [max_pages]
+# _extract_page_results
+# PRIVATE. Reads JSON body from stdin, outputs the results array.
+# Maps various Alpaca response shapes to a flat JSON array.
+_extract_page_results() {
+  jq -c '
+    if type == "array" then .
+    elif .results then .results
+    elif .activities then .activities
+    elif .orders then .orders
+    elif .positions then .positions
+    elif .bars then (.bars | if type == "object" then [to_entries[].value[]] else . end)
+    elif .trades then (.trades | if type == "object" then [to_entries[].value[]] else . end)
+    elif .quotes then (.quotes | if type == "object" then [to_entries[].value[]] else . end)
+    elif .news then .news
+    elif .snapshots then .snapshots
+    elif .corporate_actions then .corporate_actions
+    else [.]
+    end // []
+  ' 2>/dev/null
+}
+
+# _merge_paginated_results <tmpfile> [result_limit]
+# PRIVATE. Merges per-page JSON arrays from tmpfile into a single result object.
+# Trims to result_limit if specified. Uses --argjson to avoid jq injection.
+_merge_paginated_results() {
+  local tmpfile="$1"
+  local result_limit="${2:-0}"
+
+  local all_results count
+  all_results=$(jq -s 'add // []' "$tmpfile")
+  count=$(echo "$all_results" | jq 'length')
+
+  if [[ "$result_limit" -gt 0 && "$count" -gt "$result_limit" ]]; then
+    all_results=$(echo "$all_results" | jq --argjson n "$result_limit" '.[:$n]')
+    count="$result_limit"
+  fi
+
+  echo "{\"count\":${count},\"results\":${all_results}}"
+}
+
+# _paginate <url> [max_pages] [result_limit]
 # Follows next_page_token pagination, collecting results into a JSON array.
 # Appends page_token=<value> to URL for subsequent pages.
 # Stops at max_pages (default: LIB_MAX_PAGES) to prevent runaway requests.
-# NO EVAL — uses two separate jq -r calls.
+# Stops early when result_limit results collected (0 = no limit).
+# Stops if wall-clock time exceeds LIB_PAGINATE_TIMEOUT seconds.
 _paginate() {
   local url="$1"
   local max_pages="${2:-$LIB_MAX_PAGES}"
-  local page=0
-  local current_url="$url"
+  local result_limit="${3:-0}"
+
+  # Validate result_limit to prevent jq injection
+  if [[ "$result_limit" != "0" ]] && ! [[ "$result_limit" =~ ^[0-9]+$ ]]; then
+    echo '{"error":"result_limit must be a non-negative integer"}' >&2
+    return 1
+  fi
+
+  local page=0 collected=0 start_time=$SECONDS current_url="$url"
+  local body page_results page_count next_token
   local tmpfile
   tmpfile=$(mktemp)
   # shellcheck disable=SC2064
   trap "rm -f '$tmpfile'" RETURN
 
   while [[ -n "$current_url" && "$page" -lt "$max_pages" ]]; do
-    local body
+    if (( SECONDS - start_time >= LIB_PAGINATE_TIMEOUT )); then
+      echo "Warning: pagination timeout after ${LIB_PAGINATE_TIMEOUT}s (${page} pages fetched)" >&2
+      break
+    fi
+
     body=$(_api_get "$current_url")
     _read_http_code
 
@@ -404,29 +460,20 @@ _paginate() {
       return 1
     fi
 
-    # Extract page results — use jq to get array content
-    echo "$body" | jq -c '
-      if type == "array" then .
-      elif .results then .results
-      elif .activities then .activities
-      elif .orders then .orders
-      elif .positions then .positions
-      elif .bars then (.bars | if type == "object" then [to_entries[].value[]] else . end)
-      elif .trades then (.trades | if type == "object" then [to_entries[].value[]] else . end)
-      elif .quotes then (.quotes | if type == "object" then [to_entries[].value[]] else . end)
-      elif .news then .news
-      elif .snapshots then .snapshots
-      elif .corporate_actions then .corporate_actions
-      else [.]
-      end // []
-    ' >> "$tmpfile" 2>/dev/null
+    page_results=$(echo "$body" | _extract_page_results)
+    echo "$page_results" >> "$tmpfile"
 
-    # Extract next_page_token with a separate jq call (NO EVAL)
-    local next_token
+    # Early exit: stop when we have enough results
+    if [[ "$result_limit" -gt 0 ]]; then
+      page_count=$(echo "$page_results" | jq 'length' 2>/dev/null)
+      collected=$((collected + ${page_count:-0}))
+      if [[ "$collected" -ge "$result_limit" ]]; then
+        break
+      fi
+    fi
+
     next_token=$(echo "$body" | jq -r '.next_page_token // empty' 2>/dev/null)
-
     if [[ -n "$next_token" ]]; then
-      # Append page_token to URL
       if [[ "$url" == *"?"* ]]; then
         current_url="${url}&page_token=${next_token}"
       else
@@ -439,20 +486,19 @@ _paginate() {
     page=$((page + 1))
   done
 
-  # Merge all pages in one pass
-  local all_results count
-  all_results=$(jq -s 'add // []' "$tmpfile")
-  count=$(echo "$all_results" | jq 'length')
-  rm -f "$tmpfile"
-  echo "{\"count\":${count},\"results\":${all_results}}"
+  _merge_paginated_results "$tmpfile" "$result_limit"
 }
 
-# _paginate_and_output <url>
+# _paginate_and_output <url> [result_limit]
 # Paginates an endpoint and outputs combined JSON. Exits 1 on error.
+# Callers pass their --limit value as result_limit. This serves double duty:
+# the same value is sent to the API (per-page cap) and used here (total cap).
+# This is intentional — it prevents runaway pagination within agent sessions.
 _paginate_and_output() {
   local url="$1"
+  local result_limit="${2:-0}"
   local body
-  body=$(_paginate "$url") || exit 1
+  body=$(_paginate "$url" "$LIB_MAX_PAGES" "$result_limit") || exit 1
   _json_output "$body"
 }
 

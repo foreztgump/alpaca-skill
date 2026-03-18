@@ -55,7 +55,7 @@ _data_bars() {
     "feed=${feed}" \
     "currency=${currency}")
 
-  _paginate_and_output "$url"
+  _paginate_and_output "$url" "$limit"
 }
 
 # _data_trades <base_path> <symbol> [flags...]
@@ -86,7 +86,7 @@ _data_trades() {
     "feed=${feed}" \
     "currency=${currency}")
 
-  _paginate_and_output "$url"
+  _paginate_and_output "$url" "$limit"
 }
 
 # _data_quotes <base_path> <symbol> [flags...]
@@ -117,7 +117,7 @@ _data_quotes() {
     "feed=${feed}" \
     "currency=${currency}")
 
-  _paginate_and_output "$url"
+  _paginate_and_output "$url" "$limit"
 }
 
 # _data_snapshot <base_path> <symbol> [flags...]

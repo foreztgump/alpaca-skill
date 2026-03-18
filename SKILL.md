@@ -175,7 +175,7 @@ ${CLAUDE_SKILL_DIR}/scripts/alpaca_orders.sh list --status open
 9. **Time in force defaults to `day`** for stock orders. Use `--time-in-force gtc` for good-til-cancelled.
 10. **Crypto trades 24/7.** Stock trades only during market hours (check with `alpaca_market.sh clock`).
 11. **Extended hours:** Use `--extended-hours` flag on limit orders to trade in pre/post market.
-12. **Pagination uses `page_token`**, not offset. The scripts handle this automatically (max 10 pages).
+12. **Pagination uses `page_token`**, not offset. The scripts handle this automatically (max 5 pages, 120s wall-clock timeout). Set `APCA_PAGINATE_TIMEOUT` to override.
 13. **Options contract symbols use OCC format**: `AAPL250321C00185000` (SYMBOL + YYMMDD + C/P + STRIKE*1000).
 14. **News articles are paginated**. Use `--limit` to control batch size, scripts auto-paginate.
 

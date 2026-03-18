@@ -47,7 +47,7 @@ cmd_list() {
   local url
   url=$(_build_url "$LIB_DATA_URL" "/v1beta1/news" "${params[@]}")
 
-  _paginate_and_output "$url"
+  _paginate_and_output "$url" "$limit"
 }
 
 # --- Main dispatch ---

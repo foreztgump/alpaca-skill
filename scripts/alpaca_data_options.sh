@@ -60,7 +60,7 @@ cmd_bars() {
     "limit=${limit}" \
     "sort=${sort}")
 
-  _paginate_and_output "$url"
+  _paginate_and_output "$url" "$limit"
 }
 
 cmd_trades() {
@@ -82,7 +82,7 @@ cmd_trades() {
     "limit=${limit}" \
     "sort=${sort}")
 
-  _paginate_and_output "$url"
+  _paginate_and_output "$url" "$limit"
 }
 
 cmd_latest_quote() {
@@ -120,12 +120,17 @@ cmd_snapshot() {
 cmd_snapshots() {
   local symbols="${1:-}"
   _require_arg "symbols" "$symbols" "snapshots"
+  shift
+
+  local limit
+  limit=$(_parse_flag "--limit" "$@")
 
   local url
   url=$(_build_url "$LIB_DATA_URL" "${BASE_PATH}/snapshots" \
-    "symbols=${symbols}")
+    "symbols=${symbols}" \
+    "limit=${limit}")
 
-  _paginate_and_output "$url"
+  _paginate_and_output "$url" "$limit"
 }
 
 cmd_chain() {
@@ -133,12 +138,13 @@ cmd_chain() {
   _require_arg "underlying" "$underlying" "chain"
   shift
 
-  local expiration_date option_type strike_gte strike_lte root_symbol
+  local expiration_date option_type strike_gte strike_lte root_symbol limit
   expiration_date=$(_parse_flag "--expiration-date" "$@")
   option_type=$(_parse_flag "--type" "$@")
   strike_gte=$(_parse_flag "--strike-price-gte" "$@")
   strike_lte=$(_parse_flag "--strike-price-lte" "$@")
   root_symbol=$(_parse_flag "--root-symbol" "$@")
+  limit=$(_parse_flag "--limit" "$@")
 
   local url
   url=$(_build_url "$LIB_DATA_URL" "${BASE_PATH}/snapshots/${underlying}" \
@@ -146,9 +152,10 @@ cmd_chain() {
     "type=${option_type}" \
     "strike_price_gte=${strike_gte}" \
     "strike_price_lte=${strike_lte}" \
-    "root_symbol=${root_symbol}")
+    "root_symbol=${root_symbol}" \
+    "limit=${limit}")
 
-  _paginate_and_output "$url"
+  _paginate_and_output "$url" "$limit"
 }
 
 # --- Main dispatch ---

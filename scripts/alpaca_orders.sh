@@ -208,7 +208,7 @@ cmd_list() {
     "nested=${nested}" \
     "symbols=${symbols}")
 
-  _paginate_and_output "$url"
+  _paginate_and_output "$url" "$limit"
 }
 
 cmd_get() {
