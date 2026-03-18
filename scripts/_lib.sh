@@ -18,13 +18,6 @@ readonly LIB_DATA_URL="https://data.alpaca.markets"
 readonly LIB_CONFIG_DIR="${HOME}/.config/alpaca-skill"
 readonly LIB_MAX_PAGES=10
 
-# Resolve trading URL: paper (default) or live
-if [[ "${APCA_PAPER:-true}" == "true" ]]; then
-  readonly LIB_TRADING_URL="https://paper-api.alpaca.markets"
-else
-  readonly LIB_TRADING_URL="https://api.alpaca.markets"
-fi
-
 # HTTP timeout in seconds
 readonly HTTP_TIMEOUT="${APCA_TIMEOUT:-15}"
 
@@ -32,20 +25,66 @@ readonly HTTP_TIMEOUT="${APCA_TIMEOUT:-15}"
 _LIB_HTTP_CODE_FILE="/tmp/.alpaca_http_code_$$"
 trap 'rm -f "$_LIB_HTTP_CODE_FILE"' EXIT
 
-# --- Auth ---
+# --- Mode Resolution ---
+# Determine paper vs live mode. Checks (in order):
+#   1. --live flag in caller's args (LIB_CALLER_ARGS) → live
+#   2. --paper flag in caller's args → paper
+#   3. APCA_PAPER env var (default: true)
+#
+# Domain scripts should set LIB_CALLER_ARGS before sourcing:
+#   LIB_CALLER_ARGS=("$@"); source "${SCRIPT_DIR}/_lib.sh"
 
-# Resolve API key and secret based on paper/live mode.
+_LIB_IS_PAPER="true"
+for _lib_arg in "${LIB_CALLER_ARGS[@]+"${LIB_CALLER_ARGS[@]}"}"; do
+  case "$_lib_arg" in
+    --live)  _LIB_IS_PAPER="false"; break ;;
+    --paper) _LIB_IS_PAPER="true"; break ;;
+  esac
+done
+# Fall back to env var if no flag found
+if [[ -z "${LIB_CALLER_ARGS+x}" ]]; then
+  _LIB_IS_PAPER="${APCA_PAPER:-true}"
+fi
+
+# Resolve trading URL
+if [[ "$_LIB_IS_PAPER" == "true" ]]; then
+  readonly LIB_TRADING_URL="https://paper-api.alpaca.markets"
+else
+  readonly LIB_TRADING_URL="https://api.alpaca.markets"
+fi
+
+# Track mode for display/logging (never log credentials)
+if [[ "$_LIB_IS_PAPER" == "true" ]]; then
+  readonly LIB_TRADING_MODE="paper"
+else
+  readonly LIB_TRADING_MODE="live"
+fi
+
+# --- Auth ---
+# Resolve API key and secret based on resolved mode.
 # Priority: mode-specific vars > generic vars
 # Paper mode: APCA_PAPER_KEY / APCA_PAPER_SECRET_KEY
 # Live mode:  APCA_REAL_KEY / APCA_REAL_SECRET_KEY
 # Fallback:   APCA_API_KEY_ID / APCA_API_SECRET_KEY
-if [[ "${APCA_PAPER:-true}" == "true" ]]; then
+if [[ "$_LIB_IS_PAPER" == "true" ]]; then
   APCA_API_KEY_ID="${APCA_PAPER_KEY:-${APCA_API_KEY_ID:-}}"
   APCA_API_SECRET_KEY="${APCA_PAPER_SECRET_KEY:-${APCA_API_SECRET_KEY:-}}"
 else
   APCA_API_KEY_ID="${APCA_REAL_KEY:-${APCA_API_KEY_ID:-}}"
   APCA_API_SECRET_KEY="${APCA_REAL_SECRET_KEY:-${APCA_API_SECRET_KEY:-}}"
 fi
+
+# _strip_mode_flags <args...>
+# Removes --live and --paper from argument list. Use in dispatch:
+#   set -- $(_strip_mode_flags "$@")
+_strip_mode_flags() {
+  local filtered=()
+  for arg in "$@"; do
+    [[ "$arg" == "--live" || "$arg" == "--paper" ]] && continue
+    filtered+=("$arg")
+  done
+  printf '%q ' "${filtered[@]}"
+}
 
 # _require_api_key
 # Validates resolved API credentials are set. Exits with error if not.

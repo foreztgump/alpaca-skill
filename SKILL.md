@@ -164,7 +164,7 @@ ${CLAUDE_SKILL_DIR}/scripts/alpaca_orders.sh list --status open
 
 ## Behavior Rules (MANDATORY)
 
-1. **Paper trading is the default.** `APCA_PAPER=true` unless the user explicitly requests live trading.
+1. **Paper trading is the default.** All scripts default to paper trading. Append `--live` to any command for live trading, or `--paper` to be explicit. Example: `alpaca_orders.sh submit AAPL buy market --qty 1 --live`
 2. **Stock symbols are CASE-SENSITIVE.** Always use uppercase: `AAPL`, not `aapl`.
 3. **Crypto symbols use slash format.** Use `BTC/USD`, `ETH/USD` — not `BTCUSD`.
 4. **Dates use RFC 3339 format** (`2026-01-15T00:00:00Z`) or `YYYY-MM-DD` shorthand.

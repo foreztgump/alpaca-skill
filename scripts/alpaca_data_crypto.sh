@@ -4,6 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly SCRIPT_DIR
+LIB_CALLER_ARGS=("$@")
 # shellcheck source=_lib.sh
 source "${SCRIPT_DIR}/_lib.sh"
 # shellcheck source=_data_lib.sh
@@ -175,6 +176,8 @@ fi
 
 subcommand="$1"
 shift
+# Strip --live/--paper flags (already handled by _lib.sh)
+eval set -- "$(_strip_mode_flags "$@")"
 
 case "$subcommand" in
   bars)          cmd_bars "$@" ;;
